@@ -1,0 +1,4 @@
+.env
+.deta/
+env/
+__pycache__/
