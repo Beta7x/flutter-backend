@@ -3,9 +3,11 @@ import cloudinary.uploader
 import cloudinary.api
 import logging
 import os
+import json
 import controller
+from werkzeug import exceptions
+from datetime import datetime as dt
 from dotenv import load_dotenv
-from cloudinary.utils import cloudinary_url
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 
@@ -15,6 +17,10 @@ CORS(app)
 logging.basicConfig(level=logging.DEBUG)
 
 default_avatar = "https://res.cloudinary.com/beta7x/image/upload/v1668309378/utscrud/file.jpg"
+default_article_image = "https://res.cloudinary.com/beta7x/image/upload/v1668353094/flutter-backend/6_nyvwcv.jpg"
+
+current_time = json.dumps(dt.now().strftime('%A, %d %B %Y %H:%M:%S'))
+
 
 @app.route('/')
 def index():
@@ -74,9 +80,71 @@ def login():
     result = controller.login(email, password)
     return result
 
+@app.route('/users/<key>', methods=['GET'])
+def user_details(key):
+    result = controller.user_detail(key)
+    return result
+
 @app.route('/users')
 def get_users():
     return controller.get_users()
+
+@app.route('/articles/add', methods=['POST'])
+def add_article():
+    app.logger.info("In article route ['POST']")
+    
+    title = request.form.get('title')
+    content = request.form.get('content')
+    
+    cloudinary.config(cloud_name = os.getenv('CLOUD_NAME'), api_key = os.getenv('API_KEY'),
+                      api_secret = os.getenv('API_SECRET'))
+    upload_result = None
+    
+    if request.method == 'POST':
+        image_article = request.files['image']
+        if image_article:
+            upload_result = cloudinary.uploader.upload(
+                image_article,
+                unique_filename = True,
+                folder = "flutter-backend/articles"
+            )
+            return controller.insert_article(
+                title, content, upload_result['secure_url'], current_time
+            )
+        else:
+            return controller.insert_article(
+                title, content, default_article_image, current_time
+            )
+    
+@app.route('/articles')
+def get_articles():
+    return controller.get_all_article()
+
+@app.route('/visitors/add', methods=['POST'])
+def add_visitor():
+    visitor_details = request.get_json()
+    name = visitor_details['name']
+    address = visitor_details['address']
+    phone = visitor_details['phone']
+    message = visitor_details['message']
+    
+    result = controller.insert_visitor(name, address, phone, message, current_time)
+    
+    return result
+
+@app.route('/visitors')
+def get_visitors():
+    return controller.get_visitors()
+
+#Error handling Bad Request
+@app.errorhandler(exceptions.BadRequest)
+def handle_bad_request():
+    return controller.badRequest() 
+
+# Error Handling Internal Server Error
+@app.errorhandler(exceptions.InternalServerError)
+def handle_interna_server_error():
+    return controller.internalServerError()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=3000)
