@@ -136,6 +136,10 @@ def add_visitor():
 def get_visitors():
     return controller.get_visitors()
 
+@app.route('/visitors/<key>', methods=['DELETE'])
+def remove_visitor(key):
+    return controller.delete_visitor(key)
+
 #Error handling Bad Request
 @app.errorhandler(exceptions.BadRequest)
 def handle_bad_request():

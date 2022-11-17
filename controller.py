@@ -76,6 +76,11 @@ def insert_visitor(name, address, phone, message, visiting_time):
 def get_visitors():
     return jsonify({"items" : visitors.fetch()._items})
 
+# function for delet visitor by key
+def delete_visitor(key):
+    visitors.delete(key)
+    return jsonify({"status": "Ok"})
+
 # function for handling error when response 500
 def internalServerError():
     return jsonify({"message": "Internal Server Error"})
